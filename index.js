@@ -16,20 +16,12 @@ import {
   generateNewAccount,
 } from "@stacks/wallet-sdk";
 import fs from "fs";
+import { currentStage, STAGE } from "./config.js";
 
 dotenv.config();
 const ENV = process.env;
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const TIMEOUT = 15 * 60 * 1000; // 10 minutes in milliseconds
-
-const STAGE = {
-  FUNDING_1: 1,
-  FUNDING_2: 2,
-  PROFILING: 3,
-  STATISTICS: 4,
-};
-
-const currentStage = STAGE.PROFILING;
+const TIMEOUT = 20 * 60 * 1000; // 10 minutes in milliseconds
 
 const stacksNetworkApi = () => {
   const url = ENV.STACKS_API;
@@ -49,7 +41,9 @@ const stacksNetworkApi = () => {
 };
 
 const network = stacksNetworkApi();
-// network.chainId = ENV.STACKS_CHAINID;
+if (ENV.STACKS_CHAINID) {
+  network.chainId = ENV.STACKS_CHAINID;
+}
 
 let wallet = await generateWallet({
   secretKey: ENV.STACKS_MNEMONIC,
@@ -64,14 +58,14 @@ const getNextNonce = async (principal) => {
       "x-api-key": ENV.STACKS_API_KEY,
     },
   });
-  const nonce = (await response.json()).possible_next_nonce;
+  const nonce = (await response.json()).last_executed_tx_nonce + 1;
   // console.log(nonce);
   return nonce;
 };
 
 //////// funding
 
-// generate 25 accounts and send 10k STX to each of them
+// generate 25 accounts and send 100k STX to each of them
 const funding_1 = async () => {
   wallet = generate_x_accounts(30);
   const biggestAccount = wallet.accounts[0];
@@ -80,6 +74,7 @@ const funding_1 = async () => {
     transactionVersion: TransactionVersion.Testnet,
   });
   let nextNonce = await getNextNonce(biggestAddr);
+  console.log("nextNonce ", nextNonce);
 
   for (let i = 1; i <= 25; i++) {
     const account = wallet.accounts[i];
@@ -102,7 +97,7 @@ const funding_1 = async () => {
   }
 };
 
-// generate 625 accounts and send 100 STX to each of them
+// generate 625 accounts and send 1k STX to each of them
 const funding_2 = async () => {
   wallet = generate_x_accounts(1000);
 
@@ -136,8 +131,9 @@ const funding_2 = async () => {
   }
 };
 
-const stxTxProfiling = async (recipient, senderKey, senderAddr) => {
+const stxTxProfiling = async (recipient, senderKey, senderAddr, timeout) => {
   const nonce = await getNextNonce(senderAddr);
+
   const tx = await makeSTXTokenTransfer({
     network,
     nonce,
@@ -145,17 +141,20 @@ const stxTxProfiling = async (recipient, senderKey, senderAddr) => {
     amount: 99_000,
     anchorMode: "any",
     senderKey,
-    fee: 4_000,
+    fee: 6_000_000,
   });
 
+  const waitTime = Math.floor(timeout * 1000);
+  await wait(waitTime);
+
   let result = await broadcastTransaction(tx, network);
-  const currentTime = Date.now();
+  const currentTime = Math.floor(Date.now() / 1000);
 
   fs.appendFileSync(
     "txs_broadcasted.json",
     JSON.stringify(result.txid, null, 2)
   );
-  fs.appendFileSync("txs_pending.json", ",\n");
+  fs.appendFileSync("txs_pending.json", "\n");
   console.log("result ", result);
   let myTx = {
     txid: result.txid,
@@ -221,7 +220,7 @@ const get_block_time = async (transaction) => {
   }
 
   transaction.block_time = fetchedTransaction.block_time;
-  transaction.local_block_time = Date.now();
+  transaction.local_block_time = Math.floor(Date.now() / 1000);
   transaction.delta_time = transaction.block_time - transaction.receipt_time;
   transaction.local_delta_time =
     transaction.local_block_time - transaction.local_receipt_time;
@@ -230,15 +229,22 @@ const get_block_time = async (transaction) => {
   return transaction;
 };
 
-// perform operations
 const get_statistics = async () => {
   const txs = JSON.parse(fs.readFileSync("txs_stats.json", "utf8"));
   const deltas = [];
   const local_deltas = [];
+  // Add minute-based tracking
+  const minuteIntervals = {};
+  
   for (const tx of txs) {
-    deltas.push(tx.delta_time);
-    local_deltas.push(tx.local_delta_time);
-    // console.log(tx);
+    if (tx.delta_time > 0) {
+      deltas.push(tx.delta_time);
+      local_deltas.push(tx.local_delta_time);
+      
+      // Track by minute intervals
+      const minuteTaken = Math.ceil(tx.delta_time / 60);
+      minuteIntervals[minuteTaken] = (minuteIntervals[minuteTaken] || 0) + 1;
+    }
   }
 
   const min = Math.min(...deltas);
@@ -248,18 +254,19 @@ const get_statistics = async () => {
 
   const min_local = Math.min(...local_deltas);
   const max_local = Math.max(...local_deltas);
-  const average_local =
-    local_deltas.reduce((a, b) => a + b, 0) / local_deltas.length;
-  const median_local = local_deltas.sort((a, b) => a - b)[
-    Math.floor(local_deltas.length / 2)
-  ];
+  const average_local = local_deltas.reduce((a, b) => a + b, 0) / local_deltas.length;
+  const median_local = local_deltas.sort((a, b) => a - b)[Math.floor(local_deltas.length / 2)];
 
-  console.log(
-    `Min: ${min}, Max: ${max}, Average: ${average}, Median: ${median}`
-  );
-  console.log(
-    `Min: ${min_local}, Max: ${max_local}, Average: ${average_local}, Median: ${median_local}`
-  );
+  console.log(`Min: ${min}, Max: ${max}, Average: ${average}, Median: ${median}`);
+  console.log(`Min: ${min_local}, Max: ${max_local}, Average: ${average_local}, Median: ${median_local}`);
+  
+  // Print minute-based statistics
+  console.log("\nTransactions by minute intervals:");
+  Object.keys(minuteIntervals)
+    .sort((a, b) => Number(a) - Number(b))
+    .forEach(minute => {
+      console.log(`${minute} minute(s): ${minuteIntervals[minute]} transactions`);
+    });
 };
 
 const generate_x_accounts = (number) => {
@@ -289,7 +296,7 @@ const profiling = async () => {
 
     // Create a promise for each transaction with a timeout
     const txPromise = Promise.race([
-      stxTxProfiling(biggestAddr, senderAccount.stxPrivateKey, senderAddr),
+      stxTxProfiling(biggestAddr, senderAccount.stxPrivateKey, senderAddr, Math.floor(i / 3)),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error("Transaction timeout")), TIMEOUT)
       ),
