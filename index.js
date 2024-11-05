@@ -235,12 +235,12 @@ const get_statistics = async () => {
   const local_deltas = [];
   // Add minute-based tracking
   const minuteIntervals = {};
-  
+
   for (const tx of txs) {
     if (tx.delta_time > 0) {
       deltas.push(tx.delta_time);
       local_deltas.push(tx.local_delta_time);
-      
+
       // Track by minute intervals
       const minuteTaken = Math.ceil(tx.delta_time / 60);
       minuteIntervals[minuteTaken] = (minuteIntervals[minuteTaken] || 0) + 1;
@@ -254,18 +254,27 @@ const get_statistics = async () => {
 
   const min_local = Math.min(...local_deltas);
   const max_local = Math.max(...local_deltas);
-  const average_local = local_deltas.reduce((a, b) => a + b, 0) / local_deltas.length;
-  const median_local = local_deltas.sort((a, b) => a - b)[Math.floor(local_deltas.length / 2)];
+  const average_local =
+    local_deltas.reduce((a, b) => a + b, 0) / local_deltas.length;
+  const median_local = local_deltas.sort((a, b) => a - b)[
+    Math.floor(local_deltas.length / 2)
+  ];
 
-  console.log(`Min: ${min}, Max: ${max}, Average: ${average}, Median: ${median}`);
-  console.log(`Min: ${min_local}, Max: ${max_local}, Average: ${average_local}, Median: ${median_local}`);
-  
+  console.log(
+    `Min: ${min}, Max: ${max}, Average: ${average}, Median: ${median}`
+  );
+  console.log(
+    `Min: ${min_local}, Max: ${max_local}, Average: ${average_local}, Median: ${median_local}`
+  );
+
   // Print minute-based statistics
   console.log("\nTransactions by minute intervals:");
   Object.keys(minuteIntervals)
     .sort((a, b) => Number(a) - Number(b))
-    .forEach(minute => {
-      console.log(`${minute} minute(s): ${minuteIntervals[minute]} transactions`);
+    .forEach((minute) => {
+      console.log(
+        `${minute} minute(s): ${minuteIntervals[minute]} transactions`
+      );
     });
 };
 
@@ -296,7 +305,12 @@ const profiling = async () => {
 
     // Create a promise for each transaction with a timeout
     const txPromise = Promise.race([
-      stxTxProfiling(biggestAddr, senderAccount.stxPrivateKey, senderAddr, Math.floor(i / 3)),
+      stxTxProfiling(
+        biggestAddr,
+        senderAccount.stxPrivateKey,
+        senderAddr,
+        Math.floor(i / 3)
+      ),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error("Transaction timeout")), TIMEOUT)
       ),
