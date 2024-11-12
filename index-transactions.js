@@ -152,7 +152,7 @@ const stxTxProfiling = async (recipient, senderKey, senderAddr, timeout) => {
 
   fs.appendFileSync(
     "txs_broadcasted.json",
-    JSON.stringify(result.txid, null, 2)
+    JSON.stringify(result.txid, null, 2),
   );
   fs.appendFileSync("txs_pending.json", "\n");
   console.log("result ", result);
@@ -261,10 +261,10 @@ const get_statistics = async () => {
   ];
 
   console.log(
-    `Min: ${min}, Max: ${max}, Average: ${average}, Median: ${median}`
+    `Min: ${min}, Max: ${max}, Average: ${average}, Median: ${median}`,
   );
   console.log(
-    `Min: ${min_local}, Max: ${max_local}, Average: ${average_local}, Median: ${median_local}`
+    `Min: ${min_local}, Max: ${max_local}, Average: ${average_local}, Median: ${median_local}`,
   );
 
   // Print minute-based statistics
@@ -273,7 +273,7 @@ const get_statistics = async () => {
     .sort((a, b) => Number(a) - Number(b))
     .forEach((minute) => {
       console.log(
-        `${minute} minute(s): ${minuteIntervals[minute]} transactions`
+        `${minute} minute(s): ${minuteIntervals[minute]} transactions`,
       );
     });
 };
@@ -309,14 +309,14 @@ const profiling = async () => {
         biggestAddr,
         senderAccount.stxPrivateKey,
         senderAddr,
-        Math.floor(i / 3)
+        Math.floor(i / 3),
       ),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Transaction timeout")), TIMEOUT)
+        setTimeout(() => reject(new Error("Transaction timeout")), TIMEOUT),
       ),
     ]).catch((error) => {
       console.log(
-        `Transaction for account ${i} timed out or failed: ${error.message}`
+        `Transaction for account ${i} timed out or failed: ${error.message}`,
       );
       return {
         txid: null,

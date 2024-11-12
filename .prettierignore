@@ -2,6 +2,7 @@
 *.json
 *.toml
 *.md
+*.yaml
 .prettier*
 .DS_Store
 coverage/

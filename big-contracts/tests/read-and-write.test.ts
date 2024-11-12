@@ -34,7 +34,7 @@ describe("example tests", () => {
       contractName,
       codeBody,
       { clarityVersion: 3 },
-      account1
+      account1,
     );
     // succesfully deployed
     expect(actual).toStrictEqual(Cl.bool(true));
@@ -52,7 +52,7 @@ describe("example tests", () => {
       contract_name,
       "read-count-test",
       [Cl.list(clNumbers)],
-      account1
+      account1,
     );
     // succesfully called
     expect(actual).toBeOk(Cl.list(clResponse));
@@ -70,7 +70,7 @@ describe("example tests", () => {
       contract_name,
       "read-length-test",
       [Cl.list(clNumbers)],
-      account1
+      account1,
     );
     // succesfully called
     expect(actual).toBeOk(Cl.list(clResponse));
@@ -88,7 +88,7 @@ describe("example tests", () => {
       contract_name,
       "write-count-test",
       [Cl.list(clNumbers)],
-      account1
+      account1,
     );
     // succesfully called
     expect(actual).toBeOk(Cl.list(clResponse));
@@ -106,7 +106,7 @@ describe("example tests", () => {
       contract_name,
       "write-length-test",
       [Cl.list(clNumbers)],
-      account1
+      account1,
     );
     // succesfully called
     expect(actual).toBeOk(Cl.bool(true));
@@ -122,7 +122,7 @@ describe("example tests", () => {
       contract_name,
       "computation-test",
       [Cl.list(clNumbers), Cl.int(0)],
-      account1
+      account1,
     );
     // succesfully called
     expect(actual).toBeOk(Cl.int(0));

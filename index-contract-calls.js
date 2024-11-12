@@ -166,7 +166,7 @@ const deploySmartContract = async () => {
   const txOptions = {
     contractName: CONTRACT_NAME,
     codeBody: readFileSync(
-      "./big-contracts/contracts/read-and-write.clar"
+      "./big-contracts/contracts/read-and-write.clar",
     ).toString(),
     senderKey: deployAccount.stxPrivateKey,
     fee: 1_000_000,
@@ -366,7 +366,7 @@ const stxTxProfiling = async (index, senderKey, senderAddr, timeout) => {
   console.log(result);
   fs.appendFileSync(
     FILENAME_BROADCAST_OUTPUT,
-    JSON.stringify(result.txid, null, 2)
+    JSON.stringify(result.txid, null, 2),
   );
   fs.appendFileSync(FILENAME_PENDING_OUTPUT, "\n");
   console.log("result ", result);
@@ -459,21 +459,28 @@ const getStatistics = async () => {
     if (tx.delta_time > 0) {
       deltasPositive.push(tx.delta_time);
       deltasLocal.push(tx.local_delta_time);
-      minuteIntervalsPositive[minuteTaken] = (minuteIntervalsPositive[minuteTaken] || 0) + 1;
+      minuteIntervalsPositive[minuteTaken] =
+        (minuteIntervalsPositive[minuteTaken] || 0) + 1;
     }
     deltasAll.push(tx.delta_time);
-    minuteIntervalsAll[minuteTaken] = (minuteIntervalsAll[minuteTaken] || 0) + 1;
+    minuteIntervalsAll[minuteTaken] =
+      (minuteIntervalsAll[minuteTaken] || 0) + 1;
   }
 
   const minPositive = Math.min(...deltasPositive);
   const maxPositive = Math.max(...deltasPositive);
-  const averagePositive = deltasPositive.reduce((a, b) => a + b, 0) / deltasPositive.length;
-  const medianPositive = deltasPositive.sort((a, b) => a - b)[Math.floor(deltasPositive.length / 2)];
+  const averagePositive =
+    deltasPositive.reduce((a, b) => a + b, 0) / deltasPositive.length;
+  const medianPositive = deltasPositive.sort((a, b) => a - b)[
+    Math.floor(deltasPositive.length / 2)
+  ];
 
   const minAll = Math.min(...deltasAll);
   const maxAll = Math.max(...deltasAll);
   const averageAll = deltasAll.reduce((a, b) => a + b, 0) / deltasAll.length;
-  const medianAll = deltasAll.sort((a, b) => a - b)[Math.floor(deltasAll.length / 2)];
+  const medianAll = deltasAll.sort((a, b) => a - b)[
+    Math.floor(deltasAll.length / 2)
+  ];
 
   const minLocal = Math.min(...deltasLocal);
   const maxLocal = Math.max(...deltasLocal);
@@ -486,17 +493,17 @@ const getStatistics = async () => {
   console.log("------------------------------------------------------------");
   console.log("Positive Deltas Node");
   console.log(
-    `Min: ${minPositive}, Max: ${maxPositive}, Average: ${averagePositive}, Median: ${medianPositive}`
+    `Min: ${minPositive}, Max: ${maxPositive}, Average: ${averagePositive}, Median: ${medianPositive}`,
   );
   console.log("------------------------------------------------------------");
   console.log("All Deltas Node");
   console.log(
-    `Min: ${minAll}, Max: ${maxAll}, Average: ${averageAll}, Median: ${medianAll}`
+    `Min: ${minAll}, Max: ${maxAll}, Average: ${averageAll}, Median: ${medianAll}`,
   );
   console.log("------------------------------------------------------------");
   console.log("Local User Benchmark");
   console.log(
-    `Min: ${minLocal}, Max: ${maxLocal}, Average: ${averageLocal}, Median: ${median_local}`
+    `Min: ${minLocal}, Max: ${maxLocal}, Average: ${averageLocal}, Median: ${median_local}`,
   );
   console.log("------------------------------------------------------------");
 
@@ -506,7 +513,7 @@ const getStatistics = async () => {
     .sort((a, b) => Number(a) - Number(b))
     .forEach((minute) => {
       console.log(
-        `${minute} minute(s): ${minuteIntervalsPositive[minute]} transactions`
+        `${minute} minute(s): ${minuteIntervalsPositive[minute]} transactions`,
       );
     });
   console.log("------------------------------------------------------------");
@@ -515,7 +522,7 @@ const getStatistics = async () => {
     .sort((a, b) => Number(a) - Number(b))
     .forEach((minute) => {
       console.log(
-        `${minute} minute(s): ${minuteIntervalsAll[minute]} transactions`
+        `${minute} minute(s): ${minuteIntervalsAll[minute]} transactions`,
       );
     });
 };
@@ -552,14 +559,14 @@ const profiling = async () => {
         i,
         senderAccount.stxPrivateKey,
         senderAddr,
-        Math.floor(i / 3)
+        Math.floor(i / 3),
       ),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Transaction timeout")), TIMEOUT)
+        setTimeout(() => reject(new Error("Transaction timeout")), TIMEOUT),
       ),
     ]).catch((error) => {
       console.log(
-        `Transaction for account ${i} timed out or failed: ${error.message}`
+        `Transaction for account ${i} timed out or failed: ${error.message}`,
       );
       return {
         txid: null,
