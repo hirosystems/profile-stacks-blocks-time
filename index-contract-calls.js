@@ -25,6 +25,9 @@ import fs, { readFileSync } from "fs";
 import {
   CONTRACT_NAME,
   currentStage,
+  FILENAME_BROADCAST_OUTPUT,
+  FILENAME_PENDING_OUTPUT,
+  FILENAME_STATS_OUTPUT,
   MAX_READ_COUNT,
   MAX_READ_LENGTH,
   MAX_WRITE_COUNT,
@@ -166,7 +169,7 @@ const deploySmartContract = async () => {
       "./big-contracts/contracts/read-and-write.clar"
     ).toString(),
     senderKey: deployAccount.stxPrivateKey,
-    fee: 6_000_000,
+    fee: 1_000_000,
     nonce,
     anchorMode: AnchorMode.Any,
     clarityVersion: 3,
@@ -206,7 +209,7 @@ const readCountCall = async (senderKey, senderAddr) => {
     contractName: CONTRACT_NAME,
     functionName: "read-count-test",
     functionArgs,
-    fee: 6_000_000,
+    fee: 1_000_000,
     anchorMode: AnchorMode.Any,
     senderKey,
     nonce,
@@ -235,7 +238,7 @@ const readLengthCall = async (senderKey, senderAddr) => {
     contractName: CONTRACT_NAME,
     functionName: "read-length-test",
     functionArgs,
-    fee: 6_000_000,
+    fee: 1_000_000,
     anchorMode: AnchorMode.Any,
     senderKey,
     nonce,
@@ -264,7 +267,7 @@ const writeCountCall = async (senderKey, senderAddr) => {
     contractName: CONTRACT_NAME,
     functionName: "write-count-test",
     functionArgs,
-    fee: 6_000_000,
+    fee: 1_000_000,
     anchorMode: AnchorMode.Any,
     senderKey,
     nonce,
@@ -302,12 +305,42 @@ const writeLengthCall = async (senderKey, senderAddr) => {
   return await makeContractCall(txOptions);
 };
 
+const writeLengthCallWasm = async (senderKey, senderAddr) => {
+  wallet = generateXAccounts(30);
+  const deployAccount = wallet.accounts[0];
+  const deployAddress = getStxAddress({
+    account: deployAccount,
+    transactionVersion: TransactionVersion.Testnet,
+  });
+  const nonce = await getNextNonce(senderAddr);
+  let numbers = [];
+  for (let i = 0; i < (MAX_WRITE_LENGTH * TX_PERCENTAGE) / 100; i++) {
+    numbers.push(i + 1);
+  }
+
+  const functionArgs = [Cl.list(numbers.map((n) => Cl.uint(n)))];
+
+  const txOptions = {
+    contractAddress: deployAddress,
+    contractName: CONTRACT_NAME,
+    functionName: "write-length-test-wasm",
+    functionArgs: functionArgs,
+    fee: 2_000_000,
+    anchorMode: AnchorMode.Any,
+    senderKey,
+    nonce,
+    network,
+  };
+  return await makeContractCall(txOptions);
+};
+
 const stxTxProfiling = async (index, senderKey, senderAddr, timeout) => {
   const nonce = await getNextNonce(senderAddr);
 
   let tx;
   // console.log("i: ", index);
   if (index <= 100) {
+    tx = await writeLengthCallWasm(senderKey, senderAddr);
     // console.log("i: ", index, "nothing");
     // tx = await readCountCall(senderKey, senderAddr);
   } else if (index <= 200) {
@@ -332,11 +365,12 @@ const stxTxProfiling = async (index, senderKey, senderAddr, timeout) => {
   const currentTime = Math.floor(Date.now() / 1000);
   console.log(result);
   fs.appendFileSync(
-    "txs_broadcasted.json",
+    FILENAME_BROADCAST_OUTPUT,
     JSON.stringify(result.txid, null, 2)
   );
-  fs.appendFileSync("txs_pending.json", "\n");
+  fs.appendFileSync(FILENAME_PENDING_OUTPUT, "\n");
   console.log("result ", result);
+  // TODO: add smart contract call costs here
   let myTx = {
     txid: result.txid,
     updated_receipt: false,
@@ -353,8 +387,8 @@ const stxTxProfiling = async (index, senderKey, senderAddr, timeout) => {
   myTx = await get_block_time(myTx);
 
   // write to file each tx
-  fs.appendFileSync("txs_pending.json", JSON.stringify(myTx, null, 2));
-  fs.appendFileSync("txs_pending.json", "\n");
+  fs.appendFileSync(FILENAME_PENDING_OUTPUT, JSON.stringify(myTx, null, 2));
+  fs.appendFileSync(FILENAME_PENDING_OUTPUT, "\n");
 
   return myTx;
 };
@@ -411,50 +445,77 @@ const get_block_time = async (transaction) => {
 };
 
 const getStatistics = async () => {
-  const txs = JSON.parse(fs.readFileSync("txs_stats.json", "utf8"));
-  const deltas = [];
-  const local_deltas = [];
+  const txs = JSON.parse(fs.readFileSync(FILENAME_STATS_OUTPUT, "utf8"));
+  const deltasPositive = [];
+  const deltasAll = [];
+  const deltasLocal = [];
   // Add minute-based tracking
-  const minuteIntervals = {};
+  const minuteIntervalsPositive = {};
+  const minuteIntervalsAll = {};
 
   for (const tx of txs) {
+    // Track by minute intervals
+    const minuteTaken = Math.ceil(tx.delta_time / 60);
     if (tx.delta_time > 0) {
-      deltas.push(tx.delta_time);
-      local_deltas.push(tx.local_delta_time);
-
-      // Track by minute intervals
-      const minuteTaken = Math.ceil(tx.delta_time / 60);
-      minuteIntervals[minuteTaken] = (minuteIntervals[minuteTaken] || 0) + 1;
+      deltasPositive.push(tx.delta_time);
+      deltasLocal.push(tx.local_delta_time);
+      minuteIntervalsPositive[minuteTaken] = (minuteIntervalsPositive[minuteTaken] || 0) + 1;
     }
+    deltasAll.push(tx.delta_time);
+    minuteIntervalsAll[minuteTaken] = (minuteIntervalsAll[minuteTaken] || 0) + 1;
   }
 
-  const min = Math.min(...deltas);
-  const max = Math.max(...deltas);
-  const average = deltas.reduce((a, b) => a + b, 0) / deltas.length;
-  const median = deltas.sort((a, b) => a - b)[Math.floor(deltas.length / 2)];
+  const minPositive = Math.min(...deltasPositive);
+  const maxPositive = Math.max(...deltasPositive);
+  const averagePositive = deltasPositive.reduce((a, b) => a + b, 0) / deltasPositive.length;
+  const medianPositive = deltasPositive.sort((a, b) => a - b)[Math.floor(deltasPositive.length / 2)];
 
-  const min_local = Math.min(...local_deltas);
-  const max_local = Math.max(...local_deltas);
-  const average_local =
-    local_deltas.reduce((a, b) => a + b, 0) / local_deltas.length;
-  const median_local = local_deltas.sort((a, b) => a - b)[
-    Math.floor(local_deltas.length / 2)
+  const minAll = Math.min(...deltasAll);
+  const maxAll = Math.max(...deltasAll);
+  const averageAll = deltasAll.reduce((a, b) => a + b, 0) / deltasAll.length;
+  const medianAll = deltasAll.sort((a, b) => a - b)[Math.floor(deltasAll.length / 2)];
+
+  const minLocal = Math.min(...deltasLocal);
+  const maxLocal = Math.max(...deltasLocal);
+  const averageLocal =
+    deltasLocal.reduce((a, b) => a + b, 0) / deltasLocal.length;
+  const median_local = deltasLocal.sort((a, b) => a - b)[
+    Math.floor(deltasLocal.length / 2)
   ];
 
+  console.log("------------------------------------------------------------");
+  console.log("Positive Deltas Node");
   console.log(
-    `Min: ${min}, Max: ${max}, Average: ${average}, Median: ${median}`
+    `Min: ${minPositive}, Max: ${maxPositive}, Average: ${averagePositive}, Median: ${medianPositive}`
   );
+  console.log("------------------------------------------------------------");
+  console.log("All Deltas Node");
   console.log(
-    `Min: ${min_local}, Max: ${max_local}, Average: ${average_local}, Median: ${median_local}`
+    `Min: ${minAll}, Max: ${maxAll}, Average: ${averageAll}, Median: ${medianAll}`
   );
+  console.log("------------------------------------------------------------");
+  console.log("Local User Benchmark");
+  console.log(
+    `Min: ${minLocal}, Max: ${maxLocal}, Average: ${averageLocal}, Median: ${median_local}`
+  );
+  console.log("------------------------------------------------------------");
 
   // Print minute-based statistics
-  console.log("\nTransactions by minute intervals:");
-  Object.keys(minuteIntervals)
+  console.log("\n Positive Transactions by minute intervals:");
+  Object.keys(minuteIntervalsPositive)
     .sort((a, b) => Number(a) - Number(b))
     .forEach((minute) => {
       console.log(
-        `${minute} minute(s): ${minuteIntervals[minute]} transactions`
+        `${minute} minute(s): ${minuteIntervalsPositive[minute]} transactions`
+      );
+    });
+  console.log("------------------------------------------------------------");
+  console.log("\n All Transactions by minute intervals:");
+  Object.keys(minuteIntervalsPositive)
+    .sort((a, b) => Number(a) - Number(b))
+    .forEach((minute) => {
+      console.log(
+        `${minute} minute(s): ${minuteIntervalsAll[minute]} transactions`
       );
     });
 };
