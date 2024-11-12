@@ -1,0 +1,7 @@
+*.clar
+*.json
+*.toml
+*.md
+.prettier*
+.DS_Store
+coverage/

@@ -16,7 +16,7 @@
     "@stacks/transactions": "^6.13.0",
     "@stacks/wallet-sdk": "^6.16.1",
     "dotenv": "^16.4.5",
-    "env-schema": "^5.2.1",
+    "env-schema": "^5.2.1"
   },
   "devDependencies": {
     "@stacks/prettier-config": "^0.0.10",

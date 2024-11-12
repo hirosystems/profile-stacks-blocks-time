@@ -66,22 +66,23 @@ let wallet = await generateWallet({
 
 const getNextNonce = async (principal) => {
   const apiUrl = `${ENV.STACKS_API}/extended/v1/address/${principal}/nonces`;
-  console.log("api: ", apiUrl);
   const response = await fetch(apiUrl, {
     headers: {
       "x-api-key": ENV.STACKS_API_KEY,
     },
   });
   const jsonResponse = await response.json();
-  const nonce = jsonResponse.last_executed_tx_nonce + 1;
-  // console.log(nonce);
-  // const nonce = 0;
+  console.log(jsonResponse);
+  let nonce;
+  if (jsonResponse.last_executed_tx_nonce === null) {
+    nonce = 0;
+  } else {
+    nonce = jsonResponse.last_executed_tx_nonce + 1;
+  }
   return nonce;
 };
 
 //////// funding
-
-// TODO: deploy contract
 
 // generate 25 accounts and send 100k STX to each of them
 const funding1 = async () => {
@@ -169,7 +170,7 @@ const deploySmartContract = async () => {
     nonce,
     anchorMode: AnchorMode.Any,
     clarityVersion: 3,
-    network: network
+    network: network,
   };
 
   console.log("content:", txOptions.codeBody);
@@ -193,9 +194,12 @@ const readCountCall = async (senderKey, senderAddr) => {
     transactionVersion: TransactionVersion.Testnet,
   });
   const nonce = await getNextNonce(senderAddr);
-  let functionArgs = [];
-  for (let i = 0; i < (MAX_READ_COUNT * TX_PERCENTAGE) / 100; i++)
-    functionArgs.push(Cl.uint(i));
+  let numbers = [];
+  for (let i = 0; i < (MAX_READ_COUNT * TX_PERCENTAGE) / 100; i++) {
+    numbers.push(i);
+  }
+
+  const functionArgs = [Cl.list(numbers.map((n) => Cl.uint(n)))];
 
   const txOptions = {
     contractAddress: deployAddress,
@@ -206,6 +210,7 @@ const readCountCall = async (senderKey, senderAddr) => {
     anchorMode: AnchorMode.Any,
     senderKey,
     nonce,
+    network,
   };
   return await makeContractCall(txOptions);
 };
@@ -218,9 +223,12 @@ const readLengthCall = async (senderKey, senderAddr) => {
     transactionVersion: TransactionVersion.Testnet,
   });
   const nonce = await getNextNonce(senderAddr);
-  let functionArgs = [];
-  for (let i = 0; i < (MAX_READ_LENGTH * TX_PERCENTAGE) / 100; i++)
-    functionArgs.push(Cl.uint(i));
+  let numbers = [];
+  for (let i = 0; i < (MAX_READ_LENGTH * TX_PERCENTAGE) / 100; i++) {
+    numbers.push(i);
+  }
+
+  const functionArgs = [Cl.list(numbers.map((n) => Cl.uint(n)))];
 
   const txOptions = {
     contractAddress: deployAddress,
@@ -231,6 +239,7 @@ const readLengthCall = async (senderKey, senderAddr) => {
     anchorMode: AnchorMode.Any,
     senderKey,
     nonce,
+    network,
   };
   return await makeContractCall(txOptions);
 };
@@ -243,9 +252,12 @@ const writeCountCall = async (senderKey, senderAddr) => {
     transactionVersion: TransactionVersion.Testnet,
   });
   const nonce = await getNextNonce(senderAddr);
-  let functionArgs = [];
-  for (let i = 0; i < (MAX_WRITE_COUNT * TX_PERCENTAGE) / 100; i++)
-    functionArgs.push(Cl.uint(i));
+  let numbers = [];
+  for (let i = 0; i < (MAX_WRITE_COUNT * TX_PERCENTAGE) / 100; i++) {
+    numbers.push(i + 1);
+  }
+
+  const functionArgs = [Cl.list(numbers.map((n) => Cl.uint(n)))];
 
   const txOptions = {
     contractAddress: deployAddress,
@@ -256,6 +268,7 @@ const writeCountCall = async (senderKey, senderAddr) => {
     anchorMode: AnchorMode.Any,
     senderKey,
     nonce,
+    network,
   };
   return await makeContractCall(txOptions);
 };
@@ -268,19 +281,23 @@ const writeLengthCall = async (senderKey, senderAddr) => {
     transactionVersion: TransactionVersion.Testnet,
   });
   const nonce = await getNextNonce(senderAddr);
-  let functionArgs = [];
-  for (let i = 0; i < (MAX_WRITE_LENGTH * TX_PERCENTAGE) / 100; i++)
-    functionArgs.push(Cl.uint(i));
+  let numbers = [];
+  for (let i = 0; i < (MAX_WRITE_LENGTH * TX_PERCENTAGE) / 100; i++) {
+    numbers.push(i + 1);
+  }
+
+  const functionArgs = [Cl.list(numbers.map((n) => Cl.uint(n)))];
 
   const txOptions = {
     contractAddress: deployAddress,
     contractName: CONTRACT_NAME,
     functionName: "write-length-test",
-    functionArgs,
-    fee: 6_000_000,
+    functionArgs: functionArgs,
+    fee: 2_000_000,
     anchorMode: AnchorMode.Any,
     senderKey,
     nonce,
+    network,
   };
   return await makeContractCall(txOptions);
 };
@@ -289,23 +306,31 @@ const stxTxProfiling = async (index, senderKey, senderAddr, timeout) => {
   const nonce = await getNextNonce(senderAddr);
 
   let tx;
+  // console.log("i: ", index);
   if (index <= 100) {
-    tx = await readCountCall(senderKey, senderAddr);
+    // console.log("i: ", index, "nothing");
+    // tx = await readCountCall(senderKey, senderAddr);
   } else if (index <= 200) {
-    tx = await readLengthCall(senderKey, senderAddr);
+    // console.log("i: ", index, "nothing");
+    // tx = await readLengthCall(senderKey, senderAddr);
   } else if (index <= 300) {
-    tx = await writeCountCall(senderKey, senderAddr);
+    // console.log("i: ", index, "nothing");
+    // tx = await writeCountCall(senderKey, senderAddr);
   } else if (index <= 400) {
+    // console.log("i: ", index, "tx");
     tx = await writeLengthCall(senderKey, senderAddr);
+  } else if (index <= 500) {
+    // console.log("i: ", index, "nothing");
+    // tx = await computationCall(senderKey, senderAddr);
   }
   if (!tx) return;
 
-  const waitTime = Math.floor(timeout * 1000);
+  const waitTime = Math.floor((timeout / 400) * 1000);
   await wait(waitTime);
 
   let result = await broadcastTransaction(tx, network);
   const currentTime = Math.floor(Date.now() / 1000);
-
+  console.log(result);
   fs.appendFileSync(
     "txs_broadcasted.json",
     JSON.stringify(result.txid, null, 2)
