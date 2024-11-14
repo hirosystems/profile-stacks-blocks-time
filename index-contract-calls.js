@@ -27,7 +27,7 @@ import {
   currentStage,
   FILENAME_BROADCAST_OUTPUT,
   FILENAME_PENDING_OUTPUT,
-  FILENAME_STATS_OUTPUT,
+  MAX_COMPUTATION,
   MAX_READ_COUNT,
   MAX_READ_LENGTH,
   MAX_WRITE_COUNT,
@@ -296,7 +296,7 @@ const writeLengthCall = async (senderKey, senderAddr) => {
     contractName: CONTRACT_NAME,
     functionName: "write-length-test",
     functionArgs: functionArgs,
-    fee: 2_000_000,
+    fee: 1_000_000,
     anchorMode: AnchorMode.Any,
     senderKey,
     nonce,
@@ -305,7 +305,7 @@ const writeLengthCall = async (senderKey, senderAddr) => {
   return await makeContractCall(txOptions);
 };
 
-const writeLengthCallWasm = async (senderKey, senderAddr) => {
+const computationCall = async (senderKey, senderAddr) => {
   wallet = generateXAccounts(30);
   const deployAccount = wallet.accounts[0];
   const deployAddress = getStxAddress({
@@ -314,18 +314,18 @@ const writeLengthCallWasm = async (senderKey, senderAddr) => {
   });
   const nonce = await getNextNonce(senderAddr);
   let numbers = [];
-  for (let i = 0; i < (MAX_WRITE_LENGTH * TX_PERCENTAGE) / 100; i++) {
+  for (let i = 0; i < (MAX_COMPUTATION * TX_PERCENTAGE) / 100; i++) {
     numbers.push(i + 1);
   }
 
-  const functionArgs = [Cl.list(numbers.map((n) => Cl.uint(n)))];
+  const functionArgs = [Cl.list(numbers.map((n) => Cl.int(n))), Cl.int(0)];
 
   const txOptions = {
     contractAddress: deployAddress,
     contractName: CONTRACT_NAME,
-    functionName: "write-length-test-wasm",
+    functionName: "computation-test",
     functionArgs: functionArgs,
-    fee: 2_000_000,
+    fee: 1_000_000,
     anchorMode: AnchorMode.Any,
     senderKey,
     nonce,
@@ -339,22 +339,21 @@ const stxTxProfiling = async (index, senderKey, senderAddr, timeout) => {
 
   let tx;
   // console.log("i: ", index);
-  if (index <= 100) {
-    tx = await writeLengthCallWasm(senderKey, senderAddr);
+  if (index >= 0 && index <= 10) {
     // console.log("i: ", index, "nothing");
-    // tx = await readCountCall(senderKey, senderAddr);
-  } else if (index <= 200) {
+    tx = await readCountCall(senderKey, senderAddr);
+  } else if (index >= 100 && index <= 110) {
     // console.log("i: ", index, "nothing");
-    // tx = await readLengthCall(senderKey, senderAddr);
-  } else if (index <= 300) {
+    tx = await readLengthCall(senderKey, senderAddr);
+  } else if (index >= 200 && index <= 210) {
     // console.log("i: ", index, "nothing");
-    // tx = await writeCountCall(senderKey, senderAddr);
-  } else if (index <= 400) {
+    if (index <= 310) tx = await writeCountCall(senderKey, senderAddr);
+  } else if (index >= 300 && index <= 310) {
     // console.log("i: ", index, "tx");
     tx = await writeLengthCall(senderKey, senderAddr);
-  } else if (index <= 500) {
+  } else if (index >= 400 && index <= 410) {
     // console.log("i: ", index, "nothing");
-    // tx = await computationCall(senderKey, senderAddr);
+    tx = await computationCall(senderKey, senderAddr);
   }
   if (!tx) return;
 
@@ -368,9 +367,8 @@ const stxTxProfiling = async (index, senderKey, senderAddr, timeout) => {
     FILENAME_BROADCAST_OUTPUT,
     JSON.stringify(result.txid, null, 2),
   );
-  fs.appendFileSync(FILENAME_PENDING_OUTPUT, "\n");
+  fs.appendFileSync(FILENAME_BROADCAST_OUTPUT, "\n");
   console.log("result ", result);
-  // TODO: add smart contract call costs here
   let myTx = {
     txid: result.txid,
     updated_receipt: false,
@@ -406,15 +404,23 @@ const get_receipt_time = async (transaction) => {
   // fetch transaction
   while (true) {
     const fetchedTransaction = await fetchTransaction(transaction.txid);
-
-    if (fetchedTransaction.receipt_time) {
+    if (
+      fetchTransaction
+        .toString()
+        .includes("Unexpected token 'u', \"upstream c\"")
+    ) {
+      fs.appendFileSync(
+        FILENAME_BROADCAST_OUTPUT,
+        JSON.stringify(fetchTransaction, null, 2),
+      );
+      fs.appendFileSync(FILENAME_BROADCAST_OUTPUT, "\n");
+    } else if (fetchedTransaction.receipt_time) {
       transaction.updated_receipt = true;
       transaction.receipt_time = fetchedTransaction.receipt_time;
       return transaction;
     }
-
     // couldn't get receipt time, will use the local time
-    if (transaction.block_time) {
+    else if (transaction.block_time) {
       return transaction;
     }
 
@@ -439,13 +445,31 @@ const get_block_time = async (transaction) => {
   transaction.delta_time = transaction.block_time - transaction.receipt_time;
   transaction.local_delta_time =
     transaction.local_block_time - transaction.local_receipt_time;
+  // TODO: remove console.log
+  console.log(
+    "execution cost read is: ",
+    fetchedTransaction.execution_cost_read_count,
+  );
+
+  // TODO: add tenure when it started and tenure height when it got anchored
+  // TODO: add stacks when it started and stacks height when it got anchored
+  transaction.execution_cost_read_count =
+    fetchedTransaction.execution_cost_read_count;
+  transaction.execution_cost_read_length =
+    fetchedTransaction.execution_cost_read_length;
+  transaction.execution_cost_runtime =
+    fetchedTransaction.execution_cost_runtime;
+  transaction.execution_cost_write_count =
+    fetchedTransaction.execution_cost_write_count;
+  transaction.execution_cost_write_length =
+    fetchedTransaction.execution_cost_write_length;
 
   console.log("transaction ", transaction);
   return transaction;
 };
 
 const getStatistics = async () => {
-  const txs = JSON.parse(fs.readFileSync(FILENAME_STATS_OUTPUT, "utf8"));
+  const txs = JSON.parse(fs.readFileSync(FILENAME_PENDING_OUTPUT, "utf8"));
   const deltasPositive = [];
   const deltasAll = [];
   const deltasLocal = [];
@@ -525,6 +549,8 @@ const getStatistics = async () => {
         `${minute} minute(s): ${minuteIntervalsAll[minute]} transactions`,
       );
     });
+
+  // TODO: add cost limit metrics
 };
 
 const generateXAccounts = (number) => {
@@ -545,7 +571,7 @@ const profiling = async () => {
   });
 
   // TODO: move back this to 625
-  for (let i = 1; i <= 400; i++) {
+  for (let i = 1; i <= 500; i++) {
     // each account send 1 stx to main address
     const senderAccount = wallet.accounts[i];
     const senderAddr = getStxAddress({
@@ -577,6 +603,11 @@ const profiling = async () => {
         local_receipt_time: null,
         local_block_time: null,
         local_delta_time: null,
+        execution_cost_read_count: null,
+        execution_cost_read_length: null,
+        execution_cost_runtime: null,
+        execution_cost_write_count: null,
+        execution_cost_write_length: null,
       };
     });
     txPromises.push(txPromise);
@@ -628,3 +659,8 @@ main();
 //     }
 //   }
 // }
+
+const initializeFiles = () => {
+  fs.writeFileSync(FILENAME_PENDING_OUTPUT, "");
+  fs.writeFileSync(FILENAME_BROADCAST_OUTPUT, "");
+};
