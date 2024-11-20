@@ -17,6 +17,12 @@
 (define-map test-map uint uint)
 
 ;; ;; Functions
+(define-private (initialize) 
+  (begin 
+    (var-set temp-list (list ))
+    (var-set value-used-read-count u0)
+  )
+)
 
 ;; ;; Test read count limit
 (define-private (read-count-one (current-number uint)) 
@@ -36,7 +42,10 @@
 )
 
 (define-public (read-count-test (current-numbers (list 1000 uint))) 
-  (ok (map read-count-one current-numbers))
+  (begin 
+    (initialize)
+    (ok (map read-count-one current-numbers))
+  )
 )
 
 
@@ -53,7 +62,10 @@
 )
 
 (define-public (read-length-test (current-numbers (list 1200 uint))) 
-  (ok (map read-length-one current-numbers))
+  (begin 
+    (initialize)
+    (ok (map read-length-one current-numbers))
+  )
 )
 
 ;; Test write count limit
@@ -117,7 +129,10 @@
 )
 
 (define-public (write-count-test (current-numbers (list 1000 uint))) 
-  (ok (map write-count-one current-numbers))
+  (begin 
+    (initialize )
+    (ok (map write-count-one current-numbers))
+  )
 )
 
 
@@ -131,7 +146,7 @@
 
 (define-public (write-length-test (current-numbers (list 1000 uint))) 
   (begin 
-    (var-set temp-list (list))
+    (initialize )
     ;; Chain multiple write operations
     (map write-length-one current-numbers)
     (map write-length-one current-numbers)
@@ -457,7 +472,10 @@
 )
 
 (define-public (computation-test (l (list 1000 int)) (init int))
-  (ok (fold computation-three l init))
+  (begin 
+    (initialize )
+    (ok (fold computation-three l init))
+  )
 )
 
 ;; List of values

@@ -27,9 +27,10 @@ export const MAX_COMPUTATION = 1000;
 // It should be for making a tx with cost X% of the total max
 // Most of the contract calls don't increase lineary so it doesn't work as expected
 // 20 as TX_PERCENTAGE is a lot less than 20% of the block limit for write_length
-export const TX_PERCENTAGE = 90;
+export const TX_PERCENTAGE = 20;
+export const TX_FEE = 1_500_000;
 
-export const CONTRACT_NAME = "read-and-write-90-percentage";
+export const CONTRACT_NAME = "read-and-write-20-percentage-clean";
 export const FILENAME_PENDING_OUTPUT = `./outputs/${ENV.STACKS_CHAINID}/txs_pending.json`;
 export const FILENAME_BROADCAST_OUTPUT = `./outputs/${ENV.STACKS_CHAINID}/txs_broadcasted.json`;
 export const FILENAME_STATS_OUTPUT = `./outputs/${ENV.STACKS_CHAINID}/txs_stats.json`;
