@@ -583,7 +583,9 @@ const getStatistics = async () => {
           min: Math.min(...values),
           max: Math.max(...values),
           average: values.reduce((a, b) => a + b, 0) / values.length,
-          median: values.sort((a, b) => a - b)[Math.floor(values.length / 2)]
+          median: values.sort((a, b) => a - b)[Math.floor(values.length / 2)],
+          total: values.reduce((a, b) => a + b, 0)
+
         };
       }
     }
@@ -592,7 +594,7 @@ const getStatistics = async () => {
   console.log("------------------------------------------------------------");
   for (const [metric, stats] of Object.entries(costStats)) {
     console.log(`${metric.replace('_', ' ').toUpperCase()}:`);
-    console.log(`Min: ${stats.min}, Max: ${stats.max}, Average: ${stats.average.toFixed(2)}, Median: ${stats.median}`);
+    console.log(`Min: ${stats.min}, Max: ${stats.max}, Average: ${stats.average.toFixed(2)}, Median: ${stats.median}, Total: ${stats.total}`);
     console.log("------------------------------------------------------------");
   }
 };
