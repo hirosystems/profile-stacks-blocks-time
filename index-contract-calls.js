@@ -559,7 +559,42 @@ const getStatistics = async () => {
       );
     });
 
-  // TODO: add cost limit metrics
+    const costs = {
+      read_count: [],
+      read_length: [],
+      runtime: [],
+      write_count: [],
+      write_length: []
+    };
+  
+    for (const tx of txs) {
+      if (tx.execution_cost_read_count) costs.read_count.push(tx.execution_cost_read_count);
+      if (tx.execution_cost_read_length) costs.read_length.push(tx.execution_cost_read_length);
+      if (tx.execution_cost_runtime) costs.runtime.push(tx.execution_cost_runtime);
+      if (tx.execution_cost_write_count) costs.write_count.push(tx.execution_cost_write_count);
+      if (tx.execution_cost_write_length) costs.write_length.push(tx.execution_cost_write_length);
+    }
+  
+    // Calculate statistics for each cost metric
+    const costStats = {};
+    for (const [metric, values] of Object.entries(costs)) {
+      if (values.length > 0) {
+        costStats[metric] = {
+          min: Math.min(...values),
+          max: Math.max(...values),
+          average: values.reduce((a, b) => a + b, 0) / values.length,
+          median: values.sort((a, b) => a - b)[Math.floor(values.length / 2)]
+        };
+      }
+    }
+  
+  console.log("\nExecution Cost Statistics:");
+  console.log("------------------------------------------------------------");
+  for (const [metric, stats] of Object.entries(costStats)) {
+    console.log(`${metric.replace('_', ' ').toUpperCase()}:`);
+    console.log(`Min: ${stats.min}, Max: ${stats.max}, Average: ${stats.average.toFixed(2)}, Median: ${stats.median}`);
+    console.log("------------------------------------------------------------");
+  }
 };
 
 const generateXAccounts = (number) => {
