@@ -34,63 +34,47 @@ This distribution maximizes block usage while maintaining equal numbers of each 
 
 ### Naka 4 Interpreter
 
-Positive Deltas Node
-Min: 1, Max: 144, Average: 78.09433962264151, Median: 81
 
-All Deltas Node
-Min: 0, Max: 144, Average: 55.18666666666667, Median: 10
+**Tx time to be anchored**
+| Metric               | Min | Max | Average | Median | Unit |
+|---------------------|-----|-----|---------|--------|------|
+| Positive Deltas Node | 5   | 129 | 107.52  | 127    | s   |
+| All Deltas Node     | 5   | 129 | 107.52  | 127    | s   |
+| Local User Benchmark| 28  | 139 | 120.04  | 135    | s   |
 
-Local User Benchmark
-Min: 13, Max: 154, Average: 92.60377358490567, Median: 105
+**Transactions Distribution**
+| Time Window | Transaction Count |
+|-------------|------------------|
+| 1 minute    | 10               |
+| 2 minutes   | 9                |
+| 3 minutes   | 56               |
 
-Positive Transactions by minute intervals:
-1 minute(s): 23 transactions
-2 minute(s): 10 transactions
-3 minute(s): 20 transactions
+**Resource Metrics**
+| Metric       | Min      | Max       | Average    | Median    | Unit     |
+|--------------|----------|-----------|------------|-----------|----------|
+| Read Count   | 5        | 505       | 140.71     | 17        | ops      |
+| Read Length  | 87,992   | 96,992    | 91,378.39  | 88,283    | bytes    |
+| Runtime      | 163,412  | 4,956,084 | 1,431,665.59| 172,941  | [?]      |
+| Write Count  | 2        | 8         | 3.52       | 2         | ops      |
+| Write Length | 24       | 400       | 119.25     | 24        | bytes    |
 
-All Transactions by minute intervals:
-1 minute(s): 23 transactions
-2 minute(s): 10 transactions
-3 minute(s): 20 transactions
+### Naka 5 WASM
 
-READ COUNT:
-Min: 5, Max: 505, Average: 140.71, Median: 17
+**Tx time to be anchored**
+| Metric               | Min | Max | Average | Median | Unit |
+|---------------------|-----|-----|---------|--------|------|
+| Positive Deltas Node | 11  | 34  | 23.55   | 28     | s   |
+| All Deltas Node     | 11  | 34  | 23.55   | 28     | s   |
+| Local User Benchmark| 35  | 57  | 47.73   | 48     | s   |
 
-READ LENGTH:
-Min: 87992, Max: 2213292, Average: 487251.72, Median: 88283
+**Transaction Distribution**
+| Time Window | Transaction Count |
+|-------------|------------------|
+| 1 minute    | 75               |
 
-RUNTIME:
-Min: 163412, Max: 4956084, Average: 1827538.92, Median: 378812
-
-WRITE COUNT:
-Min: 2, Max: 8, Average: 3.52, Median: 2
-
-WRITE LENGTH:
-Min: 24, Max: 400, Average: 119.25, Median: 24
-
-
-### Naka 5 WASM Results
-
-Positive Deltas Node
-Min: 11, Max: 34, Average: 23.546666666666667, Median: 28
-
-All Deltas Node
-Min: 11, Max: 34, Average: 23.546666666666667, Median: 28
-
-Local User Benchmark
-Min: 35, Max: 57, Average: 47.733333333333334, Median: 48
-
-Positive Transactions by minute intervals:
-1 minute(s): 75 transactions
-
-All Transactions by minute intervals:
-1 minute(s): 75 transactions
-
-READ COUNT:
-Min: 3, Max: 3, Average: 3.00, Median: 3
-
-READ LENGTH:
-Min: 87975, Max: 87975, Average: 87975.00, Median: 87975
-
-RUNTIME:
-Min: 88054, Max: 88054, Average: 88054.00, Median: 88054
+**Resource Metrics**
+| Metric       | Min    | Max    | Average | Median | Unit  |
+|--------------|--------|---------|---------|--------|-------|
+| Read Count   | 3      | 3      | 3.00    | 3      | ops   |
+| Read Length  | 87,975 | 87,975 | 87,975  | 87,975 | bytes |
+| Runtime      | 88,054 | 88,054 | 88,054  | 88,054 | [?]   |
