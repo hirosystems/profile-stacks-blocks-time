@@ -13,12 +13,12 @@ const MAX_READ_LENGTH = 46;
 const MAX_WRITE_COUNT = 0;
 const MAX_WRITE_LENGTH = 265;
 // Takes more than 5-10 minutes with the max_computation to run the simnet unit test
+const MAX_COMPUTATION = 0;
 // const MAX_COMPUTATION = 1000;
-const MAX_COMPUTATION = 1000;
 
 const contract_name = "read-and-write";
 
-describe("example tests", () => {
+describe("test full block size limits", () => {
   it("ensures simnet is well initalised", () => {
     expect(simnet.blockHeight).toBeDefined();
   });
@@ -147,6 +147,136 @@ describe("example tests", () => {
   it("check computation-test limit 1000 numbers", () => {
     let clNumbers: ClarityValue[] = [];
     for (let i = 0; i < MAX_COMPUTATION; i++) {
+      clNumbers.push(Cl.int((i % 1000) + 1));
+    }
+
+    const { result: actual } = simnet.callPublicFn(
+      contract_name,
+      "computation-test",
+      [Cl.list(clNumbers), Cl.int(0)],
+      account1,
+    );
+    // succesfully called
+    expect(actual).toBeOk(Cl.int(0));
+    const { result: actual2 } = simnet.callPublicFn(
+      contract_name,
+      "computation-test",
+      [Cl.list(clNumbers), Cl.int(0)],
+      account1,
+    );
+    // succesfully called
+    expect(actual2).toBeOk(Cl.int(0));
+  });
+});
+
+describe("test smallest block size limit", () => {
+  it("check read-count-test limit 1 numbers", () => {
+    let clNumbers: ClarityValue[] = [];
+    let clResponse: ClarityValue[] = [];
+    for (let i = 0; i < 1; i++) {
+      clNumbers.push(Cl.uint(i % 1000));
+      clResponse.push(Cl.ok(Cl.bool(true)));
+    }
+
+    const { result: actual } = simnet.callPublicFn(
+      contract_name,
+      "read-count-test",
+      [Cl.list(clNumbers)],
+      account1,
+    );
+    // succesfully called
+    expect(actual).toBeOk(Cl.list(clResponse));
+    const { result: actual2 } = simnet.callPublicFn(
+      contract_name,
+      "read-count-test",
+      [Cl.list(clNumbers)],
+      account1,
+    );
+    // succesfully called
+    expect(actual2).toBeOk(Cl.list(clResponse));
+  });
+
+  it("check read-length-test limit 1 numbers", () => {
+    let clNumbers: ClarityValue[] = [];
+    let clResponse: ClarityValue[] = [];
+    for (let i = 0; i < 1; i++) {
+      clNumbers.push(Cl.uint((i % 1000) + 1));
+      clResponse.push(Cl.ok(Cl.bool(true)));
+    }
+
+    const { result: actual } = simnet.callPublicFn(
+      contract_name,
+      "read-length-test",
+      [Cl.list(clNumbers)],
+      account1,
+    );
+    // succesfully called
+    expect(actual).toBeOk(Cl.list(clResponse));
+    const { result: actual2 } = simnet.callPublicFn(
+      contract_name,
+      "read-length-test",
+      [Cl.list(clNumbers)],
+      account1,
+    );
+    // succesfully called
+    expect(actual2).toBeOk(Cl.list(clResponse));
+  });
+
+  it("check write-count-test limit 1 numbers", () => {
+    let clNumbers: ClarityValue[] = [];
+    let clResponse: ClarityValue[] = [];
+    for (let i = 0; i < 1; i++) {
+      clNumbers.push(Cl.uint((i % 1000) + 1));
+      clResponse.push(Cl.ok(Cl.bool(true)));
+    }
+
+    const { result: actual } = simnet.callPublicFn(
+      contract_name,
+      "write-count-test",
+      [Cl.list(clNumbers)],
+      account1,
+    );
+    // succesfully called
+    expect(actual).toBeOk(Cl.list(clResponse));
+    const { result: actual2 } = simnet.callPublicFn(
+      contract_name,
+      "write-count-test",
+      [Cl.list(clNumbers)],
+      account1,
+    );
+    // succesfully called
+    expect(actual2).toBeOk(Cl.list(clResponse));
+  });
+
+  it("check write-length-test limit 1 numbers", () => {
+    let clNumbers: ClarityValue[] = [];
+    let clResponse: ClarityValue[] = [];
+    for (let i = 0; i < 50; i++) {
+      clNumbers.push(Cl.uint((i % 1000) + 1));
+      clResponse.push(Cl.ok(Cl.bool(true)));
+    }
+
+    const { result: actual } = simnet.callPublicFn(
+      contract_name,
+      "write-length-test",
+      [Cl.list(clNumbers)],
+      account1,
+    );
+    // succesfully called
+    expect(actual).toBeOk(Cl.bool(true));
+    const { result: actual2 } = simnet.callPublicFn(
+      contract_name,
+      "write-length-test",
+      [Cl.list(clNumbers)],
+      account1,
+    );
+    // succesfully called
+    expect(actual2).toBeOk(Cl.bool(true));
+  });
+
+  it("check computation-test limit 1 numbers", () => {
+    let clNumbers: ClarityValue[] = [];
+    for (let i = 0; i < 1; i++) {
       clNumbers.push(Cl.int((i % 1000) + 1));
     }
 

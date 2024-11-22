@@ -25,6 +25,7 @@ import fs, { readFileSync } from "fs";
 import {
   CONTRACT_NAME,
   currentStage,
+  DIRECTORY_OUTPUT,
   FILENAME_BROADCAST_OUTPUT,
   FILENAME_PENDING_OUTPUT,
   MAX_COMPUTATION,
@@ -33,8 +34,12 @@ import {
   MAX_WRITE_COUNT,
   MAX_WRITE_LENGTH,
   STAGE,
+  TX_COUNT_COMPUTATION,
+  TX_COUNT_READ_COUNT,
+  TX_COUNT_READ_LENGTH,
+  TX_COUNT_WRITE_COUNT,
+  TX_COUNT_WRITE_LENGTH,
   TX_FEE,
-  TX_PERCENTAGE,
 } from "./config.js";
 
 dotenv.config();
@@ -199,7 +204,7 @@ const readCountCall = async (senderKey, senderAddr) => {
   });
   const nonce = await getNextNonce(senderAddr);
   let numbers = [];
-  for (let i = 0; i < (MAX_READ_COUNT * TX_PERCENTAGE) / 100; i++) {
+  for (let i = 0; i < MAX_READ_COUNT / 100; i++) {
     numbers.push(i);
   }
 
@@ -228,7 +233,7 @@ const readLengthCall = async (senderKey, senderAddr) => {
   });
   const nonce = await getNextNonce(senderAddr);
   let numbers = [];
-  for (let i = 0; i < (MAX_READ_LENGTH * TX_PERCENTAGE) / 100; i++) {
+  for (let i = 0; i < MAX_READ_LENGTH / 100; i++) {
     numbers.push(i);
   }
 
@@ -257,7 +262,7 @@ const writeCountCall = async (senderKey, senderAddr) => {
   });
   const nonce = await getNextNonce(senderAddr);
   let numbers = [];
-  for (let i = 0; i < (MAX_WRITE_COUNT * TX_PERCENTAGE) / 100; i++) {
+  for (let i = 0; i < MAX_WRITE_COUNT / 100; i++) {
     numbers.push(i + 1);
   }
 
@@ -286,7 +291,7 @@ const writeLengthCall = async (senderKey, senderAddr) => {
   });
   const nonce = await getNextNonce(senderAddr);
   let numbers = [];
-  for (let i = 0; i < (MAX_WRITE_LENGTH * TX_PERCENTAGE) / 100; i++) {
+  for (let i = 0; i < MAX_WRITE_LENGTH / 100; i++) {
     numbers.push(i + 1);
   }
 
@@ -315,7 +320,7 @@ const computationCall = async (senderKey, senderAddr) => {
   });
   const nonce = await getNextNonce(senderAddr);
   let numbers = [];
-  for (let i = 0; i < (MAX_COMPUTATION * TX_PERCENTAGE) / 100; i++) {
+  for (let i = 0; i < MAX_COMPUTATION / 100; i++) {
     numbers.push(i + 1);
   }
 
@@ -340,19 +345,19 @@ const stxTxProfiling = async (index, senderKey, senderAddr, timeout) => {
 
   let tx;
   // console.log("i: ", index);
-  if (index >= 0 && index <= 10) {
+  if (index >= 0 && index < 0 + TX_COUNT_READ_COUNT) {
     // console.log("i: ", index, "nothing");
     tx = await readCountCall(senderKey, senderAddr);
-  } else if (index >= 100 && index <= 110) {
+  } else if (index >= 100 && index < 100 + TX_COUNT_READ_LENGTH) {
     // console.log("i: ", index, "nothing");
     tx = await readLengthCall(senderKey, senderAddr);
-  } else if (index >= 200 && index <= 210) {
+  } else if (index >= 200 && index < 200 + TX_COUNT_WRITE_COUNT) {
     // console.log("i: ", index, "nothing");
     if (index <= 310) tx = await writeCountCall(senderKey, senderAddr);
-  } else if (index >= 300 && index <= 310) {
+  } else if (index >= 300 && index < 300 + TX_COUNT_WRITE_LENGTH) {
     // console.log("i: ", index, "tx");
     tx = await writeLengthCall(senderKey, senderAddr);
-  } else if (index >= 400 && index <= 410) {
+  } else if (index >= 400 && index < 400 + TX_COUNT_COMPUTATION) {
     // console.log("i: ", index, "nothing");
     tx = await computationCall(senderKey, senderAddr);
   }
@@ -364,6 +369,9 @@ const stxTxProfiling = async (index, senderKey, senderAddr, timeout) => {
   let result = await broadcastTransaction(tx, network);
   const currentTime = Math.floor(Date.now() / 1000);
   console.log(result);
+  if (!fs.existsSync(DIRECTORY_OUTPUT)) {
+    fs.mkdirSync(DIRECTORY_OUTPUT);
+  }
   fs.appendFileSync(
     FILENAME_BROADCAST_OUTPUT,
     JSON.stringify(result.txid, null, 2),
@@ -551,7 +559,42 @@ const getStatistics = async () => {
       );
     });
 
-  // TODO: add cost limit metrics
+    const costs = {
+      read_count: [],
+      read_length: [],
+      runtime: [],
+      write_count: [],
+      write_length: []
+    };
+  
+    for (const tx of txs) {
+      if (tx.execution_cost_read_count) costs.read_count.push(tx.execution_cost_read_count);
+      if (tx.execution_cost_read_length) costs.read_length.push(tx.execution_cost_read_length);
+      if (tx.execution_cost_runtime) costs.runtime.push(tx.execution_cost_runtime);
+      if (tx.execution_cost_write_count) costs.write_count.push(tx.execution_cost_write_count);
+      if (tx.execution_cost_write_length) costs.write_length.push(tx.execution_cost_write_length);
+    }
+  
+    // Calculate statistics for each cost metric
+    const costStats = {};
+    for (const [metric, values] of Object.entries(costs)) {
+      if (values.length > 0) {
+        costStats[metric] = {
+          min: Math.min(...values),
+          max: Math.max(...values),
+          average: values.reduce((a, b) => a + b, 0) / values.length,
+          median: values.sort((a, b) => a - b)[Math.floor(values.length / 2)]
+        };
+      }
+    }
+  
+  console.log("\nExecution Cost Statistics:");
+  console.log("------------------------------------------------------------");
+  for (const [metric, stats] of Object.entries(costStats)) {
+    console.log(`${metric.replace('_', ' ').toUpperCase()}:`);
+    console.log(`Min: ${stats.min}, Max: ${stats.max}, Average: ${stats.average.toFixed(2)}, Median: ${stats.median}`);
+    console.log("------------------------------------------------------------");
+  }
 };
 
 const generateXAccounts = (number) => {
