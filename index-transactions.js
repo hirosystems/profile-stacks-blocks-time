@@ -52,14 +52,18 @@ let wallet = await generateWallet({
 
 const getNextNonce = async (principal) => {
   const apiUrl = `${ENV.STACKS_API}/extended/v1/address/${principal}/nonces`;
-
   const response = await fetch(apiUrl, {
     headers: {
       "x-api-key": ENV.STACKS_API_KEY,
     },
   });
-  const nonce = (await response.json()).last_executed_tx_nonce + 1;
-  // console.log(nonce);
+  const jsonResponse = await response.json();
+  let nonce;
+  if (jsonResponse.last_executed_tx_nonce === null) {
+    nonce = 0;
+  } else {
+    nonce = jsonResponse.last_executed_tx_nonce + 1;
+  }
   return nonce;
 };
 

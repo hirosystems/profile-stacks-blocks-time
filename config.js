@@ -53,5 +53,5 @@ export const FILENAME_STATS_OUTPUT = `./outputs/${ENV.STACKS_CHAINID}/txs_stats.
 // export const currentStage = STAGE.FUNDING_1;
 // export const currentStage = STAGE.FUNDING_2;
 // export const currentStage = STAGE.DEPLOY_SC;
-// export const currentStage = STAGE.PROFILING;
-export const currentStage = STAGE.STATISTICS;
+export const currentStage = STAGE.PROFILING;
+// export const currentStage = STAGE.STATISTICS;
